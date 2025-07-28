@@ -6,6 +6,5 @@ VideoFrame2Tensor provides an efficient pipeline for importing video frames dire
 
 ## Directory Structure
 
-- `explainer.md` — Technical explainer and API usage details
-- `example/semantic_segmentation/` — Example implementation for real-time video semantic segmentation
-- `test-data/` — Contains test models and data for evaluation
+- `explainer.md` — Technical explainer and API usage details.
+- `example/semantic_segmentation/` — Example implementation for real-time video semantic segmentation, it's a subset of [WebNN Samples](https://github.com/webmachinelearning/webnn-samples)
