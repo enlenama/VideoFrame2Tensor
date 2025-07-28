@@ -23,8 +23,10 @@ export class DeepLabV3MNV2Nchw {
       std: [127.5, 127.5, 127.5],
       scaledFlag: true,
       inputLayout: 'nchw',
+      // inputLayout: 'nwhc',
       labelUrl: './labels/labels.txt',
       inputShape: [1, 3, 513, 513],
+      // inputShape: [1, 513, 513, 3], // for nhwc
     };
     this.outputShape = [1, 21, 513, 513];
   }
@@ -107,6 +109,9 @@ export class DeepLabV3MNV2Nchw {
       readable: true,
     });
 
+    // To utilize the hw acceleration, add a transpose layer to convert the input layout from 'nchw' to 'nhwc'.
+    // const transpose = this.builder_.transpose(input, {permutation: [0, 3, 1, 2]});
+
     const conv0 = this.buildConv_(
         input, ['MobilenetV2_Conv_Conv2D', '', '551'], 'relu6', {strides, padding: [1, 1, 1, 1]});
     const conv1 = this.buildConv_(
@@ -167,8 +172,11 @@ export class DeepLabV3MNV2Nchw {
     this.graph_ = await this.builder_.build({'output': outputOperand});
   }
 
-  async compute(inputBuffer) {
-    this.context_.writeTensor(this.inputTensor_, inputBuffer);
+  async compute(input) {
+    const time = performance.now();
+    this.context_.writeTensor(this.inputTensor_, input);
+    console.log(`write Tensor time: ` + (performance.now() - time).toFixed(2) + 'ms');
+
     const inputs = {'input': this.inputTensor_};
     const outputs = {'output': this.outputTensor_};
     this.context_.dispatch(this.graph_, inputs, outputs);

@@ -53,7 +53,8 @@ $('#backendBtns .btn').on('change', async (e) => {
   if (inputType === 'camera') {
     await stopCamRender();
   }
-  layout = utils.getDefaultLayout($(e.target).attr('id'));
+  // layout = utils.getDefaultLayout($(e.target).attr('id'));
+  layout = 'nchw';
   await main();
 });
 
@@ -251,11 +252,42 @@ async function renderCamStream() {
     return;
   }
   isRendering = true;
+
+  const time = performance.now();
   const inputBuffer = utils.getInputTensor(camElement, inputOptions);
+  console.log(`convert to tensor format in: ${(performance.now() - time).toFixed(2)} ms`); 
+  // const inputCanvas = utils.getVideoFrame(camElement);
+  // console.log('- Computing... ');
+  // const start = performance.now();
+  // const outputBuffer = await netInstance.compute(inputBuffer);
+
+  const videoFrame = new VideoFrame(camElement);
+  let channels, height, width;
+  if (inputOptions.inputLayout === 'nhwc') {
+    [height, width, channels] = inputOptions.inputShape.slice(1);
+  } else {
+    [channels, height, width] = inputOptions.inputShape.slice(1);
+  }
+  if (inputOptions.scaledFlag) {
+    const resizeRatio = Math.max(Math.max(
+        camElement.videoWidth / width, camElement.videoHeight / height), 1);
+    width = Math.floor(camElement.videoWidth / resizeRatio);
+    height = Math.floor(camElement.videoHeight / resizeRatio);
+    console.log(`Resize input element to ${width} x ${height}`);
+  }
+
+  const mlFrame = {
+    frame: videoFrame,
+    convertToNchw: inputOptions.inputLayout == 'nchw',
+    visibleRect: new DOMRect(0, 0, width, height),
+    mean: inputOptions.mean[0],
+    std: inputOptions.std[0], // three channels are required to have the same mean and std.
+  };
+
   const inputCanvas = utils.getVideoFrame(camElement);
   console.log('- Computing... ');
   const start = performance.now();
-  const outputBuffer = await netInstance.compute(inputBuffer);
+  const outputBuffer = await netInstance.compute(mlFrame);
   computeTime = (performance.now() - start).toFixed(2);
   console.log(`  done in ${computeTime} ms.`);
   showPerfResult();
@@ -360,6 +392,7 @@ export async function main() {
         contextOptions['numThreads'] = numThreads;
       }
       start = performance.now();
+      console.log('backend: '+ backend + ' device type: ' + deviceType + ' power preference: ' + contextOptions['powerPreference']);
       const outputOperand = await netInstance.load(contextOptions);
       loadTime = (performance.now() - start).toFixed(2);
       console.log(`  done in ${loadTime} ms.`);
