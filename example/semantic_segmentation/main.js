@@ -54,7 +54,7 @@ $('#backendBtns .btn').on('change', async (e) => {
     await stopCamRender();
   }
   // layout = utils.getDefaultLayout($(e.target).attr('id'));
-  layout = 'nchw';
+  layout = 'nhwc'; // Hardcode for testing.
   await main();
 });
 
@@ -278,7 +278,7 @@ async function renderCamStream() {
 
   const mlFrame = {
     frame: videoFrame,
-    convertToNchw: inputOptions.inputLayout == 'nchw',
+    IsNchw: inputOptions.inputLayout == 'nchw',
     visibleRect: new DOMRect(0, 0, width, height),
     mean: inputOptions.mean[0],
     std: inputOptions.std[0], // three channels are required to have the same mean and std.
